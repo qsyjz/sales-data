@@ -1,7 +1,7 @@
 ---
 title: "Case Study for the module of Scientific Programming and Mathematical Modelling"
 author: 'Student ID: 5552339'
-date: "2024-05-07"
+date: "2024-05-17"
 output:
   pdf_document: default
   html_document:
@@ -15,13 +15,14 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 # 1. Introduction
-The media company Bisney aims to understand the relationship between advertising expenditures across TV, radio, and newspapers, and the sales performance of their action figure toy over the past three years. With a dataset of 200 observations, they want to uncover which advertisement channels are most influential in driving toy sales.
+The media company Bisney aims to understand the relationship between advertising expenditures across TV, radio, newspapers and the sales performance of their action figure toy over the past three years. With a dataset of 200 observations, they want to uncover which advertisement channels are most influential in driving toy sales.
 
 The purpose of this study is to analyze the effect of advertising expenditures on toy sales for Bisney's action figure product line. Specifically, the study aims to determine the most effective advertising channel among TV, radio, and newspaper. The study also aims to showcase a step-by-step mathematical modeling approach. Finally, the study addresses the strategic question of advising Bisney on how to distribute its resources among the three advertising channels to achieve a target of 30 thousand toy sales in the next period. 
 
 The study begins by framing the case of Bisney, focusing on the link between advertising spending and toy sales. It progresses through preliminary data analysis, descriptive data analysis, and inferential data analysis, concluding with a summary of findings and recommendations.
 
-Using RStudio, the study simplifies assumptions and identifies independent variables (TV, radio, newspaper spending) and the dependent variable (toy sales). Data types and missing values are checked to ensure dataset integrity, and the suitability of data is checked using Central Limit Theorem with histograms. Descriptive analysis follows, where distribution(histogram), central tendency(mean/median) and spread(standard deviation/range) of each group of data are shown. Inferential analysis uses correlation and regression to show relationships, while p-value and Root Mean Square Error are used to check the significance and accuracy. Comparing seven linear regressions models, each of the advertisements and sales performance is shown, the advertising with the most impact is found and the allocation of source in terms of a specific target sale is suggested. 
+Using RStudio, the study simplifies assumptions and identifies independent variables (TV, radio, newspaper spending) and the dependent variable (toy sales). Data types and missing values are checked to ensure dataset integrity, and the suitability of data is checked using Central Limit Theorem with histograms. Descriptive analysis follows, where distribution(histogram), central tendency(mean/median) and spread(standard deviation/range) of each group of data are shown. Inferential analysis uses correlation and regression to show relationships, while p-value and Root Mean Square Error(RMSE) are used to check the significance and accuracy. Comparing the regressions models, each of the advertisements and sales performance is shown, the advertising with the most impact is found and the allocation of source in terms of a specific target sale is suggested. 
+
 
 
 # 2. Analysis
@@ -29,15 +30,13 @@ Using RStudio, the study simplifies assumptions and identifies independent varia
 ## 2.1. Definitions
 The report contains a series of terms, which are defined as follows:
 
-*histogram/normal distribution/...?
-
 * Central Limit Theorem (CLT): A fundamental principle in statistics stating that the sampling distribution of the sample mean approaches a normal distribution as the sample size increases, regardless of the shape of the population distribution. 
 
 * Measure of central tendency: A statistical measure used to describe the center of a data set. Common measures of central tendency include the mean (average), median (middle value), and mode (most frequent value). 
 
 * Measure of spread: A statistical measure that describes the variability data points in a dataset. Common measures of spread include the range (difference between the maximum and minimum values), variance (average of the squared differences from the mean), and standard deviation (square root of the variance). 
 
-* Linear regression:  A statistical method used to model the relationship between a dependent variable (response) and one or more independent variables (predictors) by fitting a linear equation to observed data.
+* Linear regression: A statistical method used to model the relationship between a dependent variable (response) and one or more independent variables (predictors) by fitting a linear equation to observed data.
 
 * P-value: In statistical hypothesis testing, the p-value is the probability of obtaining results as extreme as the observed results, assuming that the null hypothesis is true. A low p-value in linear regression model indicates that the relation between the two variables is insignificant.
 
@@ -48,22 +47,32 @@ The report contains a series of terms, which are defined as follows:
 
 **1. Summarize the variables and data types**
 
-The dataset comprises four variables: TV, Radio, Newspaper, and Sales. Each variable is represented as numeric data type.
 
 ```{r}
 library(readr)
-sales_data <- read_csv("https://raw.githubusercontent.com/qsyjz/sales-data/main/SPAMMSA3.csv")
+library(dplyr)
+library(tidyr)
+library(broom)
+library(knitr)
+library(kableExtra)
 
-str(sales_data)
+sales_data <- read_csv("https://raw.githubusercontent.com/qsyjz/sales-data/main/SPAMMSA3.csv")
+data_type <- sapply(sales_data, class)
+missing_values <- sapply(sales_data, function(x) sum(is.na(x)))
+
+data_check_table <- data.frame(
+  Data_type = data_type[1:4],
+  Missing_Values = missing_values[1:4]
+)
+
+kable(data_check_table, caption = "<span style='color:black'><b>Table 1: Data Structure and Missing Values\b") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
+From Table 1, the dataset comprises four variables: TV, Radio, Newspaper, and Sales. Each variable is numeric data type.
 
 **2.Check for missing value and clean the data** 
 
-```{r} 
-missing_value <- colSums(is.na(sales_data))
-```
-There is no missing value present across any of the variables, so no data cleaning procedures are required.
-
+From Table 1, there is no missing value present across any of the variables, so no data cleaning procedures are required.
 
 **3.Suitability of data**
 
@@ -122,7 +131,7 @@ sales_sd <- sd(sales_data$Sales)
 x <- seq(0, 400, length=1000)  
 y <- dnorm(x, mean=sales_mean, sd=sales_sd)  
 
-hist(sales_data$Sales, main="Figure 4: Sales Distribution", xlab="Toy Sales (thousands)", freq=FALSE,ylim=c(0, 0.08),cex.main=0.9)
+hist(sales_data$Sales, main="Figure 4: Sales Distribution", xlab="Toy Sales (in thousands)", freq=FALSE,ylim=c(0, 0.08),cex.main=0.9)
 lines(x, y, col="blue")
 ```
 Figure 4 shows that the distribution of radio advertising expenditure data is symmetrical. Therefore this group of sample data follows normal distribution and can be used in the study.
@@ -138,7 +147,7 @@ Figure 4 shows that the distribution of radio advertising expenditure data is sy
 tv_median <- median(sales_data$TV)
 tv_range <- max(sales_data$TV)-min(sales_data$TV)
 ```
-From Figure1, TV advertising expenditure has a left-skewed distribution. Thus, median is suitable to measure the central tendency since it won't be affected by outliers. The median is 165.6937 GBP, showing the middle value of the data. Since standard deviation can also be affected by outliers, range is suitable for the measure of spread. The range of this group of data is 388.2614 GBP, indicating the observed TV advertising expenditure values span a large range of 388.2614 GBP.
+From Figure 1, TV advertising expenditure has a left-skewed distribution. Thus, median is suitable to measure the central tendency since it won't be affected by outliers. The median is 165.6937 GBP, showing the middle value of the data. Since standard deviation can also be affected by outliers, range is suitable for the measure of spread. The range of this group of data is 388.2614 GBP, indicating the observed TV advertising expenditure values span a large range of 388.2614 GBP.
 
 
 **2. Radio Advertising Expenditure**
@@ -159,7 +168,7 @@ newspaper_median <- median(sales_data$Newspaper)
 newspaper_range <- max(sales_data$Newspaper)-min(sales_data$Newspaper)
 ```
 
-From Figure 3, Newspaper advertising expenditure also has a left-skewed distribution. Thus the central tendency can be measured by median, which is  30.48269 GBP. Similarly, range is suitable for the measure of spread, which is 85.39051 GBP and is the span of observed Radio advertising expenditure.
+From Figure 3, Newspaper advertising expenditure also has a left-skewed distribution. Thus the central tendency can be measured by median, which is  30.4827 GBP. Similarly, range is suitable for the measure of spread, which is 85.3905 GBP and is the span of observed Radio advertising expenditure.
 
 
 **4. Sales**
@@ -179,7 +188,7 @@ By performing the correlation analysis between TV-Sales, Radio-sales, and newspa
 library(ggplot2)
 gg <- ggplot(sales_data, aes(x = TV, y = Sales)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + ggtitle(bquote(bold("Figure 5: Relationship between TV Advertising expenditure and Sales" ))) 
 model_tv <- lm(Sales ~ TV, data = sales_data)
-gg + theme(plot.title = element_text(size = 12, hjust = 0.5))
+gg + theme(plot.title = element_text(size = 12, hjust = 0.5))+labs(x = "TV Advertising Expenditure (GBP)", y = "Sales (in thousands)")
 
 #accuracy: 
 mse_tv <- mean(model_tv$residuals^2)
@@ -192,106 +201,102 @@ rmse_tv <- sqrt(mse_tv)
 library(ggplot2)
 gg <- ggplot(sales_data, aes(x = Radio, y = Sales)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + ggtitle(bquote(bold("Figure 6: Relationship between Radio Advertising expenditure and Sales" ))) 
 model_radio <- lm(Sales ~ Radio, data = sales_data)
-gg + theme(plot.title = element_text(size = 12, hjust = 0.5))
+gg + theme(plot.title = element_text(size = 12, hjust = 0.5))+labs(x = "Radio Advertising Expenditure (GBP)", y = "Sales (in thousands)")
 
 #accuracy:
 mse_radio <- mean(model_radio$residuals^2)
 rmse_radio <- sqrt(mse_radio)
-# rmse_radio
-
-# summary(model_radio)
 ```
 
 ```{r}
 library(ggplot2)
 gg <- ggplot(sales_data, aes(x = Newspaper, y = Sales)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + ggtitle(bquote(bold("Figure 7: Relationship between Newspaper Advertising expenditure and Sales" ))) 
 model_newspaper <- lm(Sales ~ Newspaper, data = sales_data)
-gg + theme(plot.title = element_text(size = 11, hjust = 0.5))
+gg + theme(plot.title = element_text(size = 11, hjust = 0.5))+labs(x = "Newspaper Advertising Expenditure (GBP)", y = "Sales (in thousands)")
 
 #accuracy:
 mse_newspaper <- mean(model_newspaper$residuals^2)
 rmse_newspaper <- sqrt(mse_newspaper)
-rmse_newspaper
-summary(model_newspaper)
+# rmse_newspaper
+# summary(model_newspaper)
 ```
 
-The regression functions are $y=15.74-0.0034x$, $y=15.29-0.0036x$, $y=14.49+0.0226x$ respectively. Combining the graphs, the gradients of the regression lines show that only newspaper advertising expenditure has positive correlation with the toy sales and has the biggest impact on it.
+The regression functions are $y=15.7435-0.0034x$, $y=15.2907-0.0036x$, $y=14.4945+0.0226x$ respectively.  Obviously, only newspaper advertising expenditure has positive correlation with the sales and has the biggest impact on it.
 
-In the linear regression models, except for the 
-four variables referred in the previous part, the independent variables also need contain combined advertising expenditure: the sum of TV and radio advertising expenditure, the sum of TV and newspaper's expenditure, the sum of radio and neswpaper's expenditure and the sum of all the advertising expenditure, so that suggestions on resource allocation can be given. These four regression models are as following:
+To suggest on resource allocation, combined advertising also need to be considered. Thus the independent variables need contain the total advertising spending on TV and radio, TV and newspaper, radio and neswpaper and all the three channels. These four regression models are as following:
 
 ```{r}
 library(ggplot2)
-gg <- ggplot(sales_data, aes(x = TR, y = Sales)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + ggtitle(bquote(bold("Figure 8: Relationship between TV, Radio Advertisement and Sales"))) 
+gg <- ggplot(sales_data, aes(x = TR, y = Sales)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + ggtitle(bquote(bold("Figure 8: Relationship between TV, Radio Advertising Expenditure and Sales"))) 
 model_TR <- lm(Sales ~ TR, data = sales_data)
-gg + theme(plot.title = element_text(size = 12, hjust = 0.5))
-
+gg + theme(plot.title = element_text(size = 12, hjust = 0.5))+labs(x = "TV and Radio Advertising Expenditure (GBP)", y = "Sales (in thousands)")
 
 #accuracy:
 mse_TR <- mean(model_TR$residuals^2)
 rmse_TR <- sqrt(mse_TR)
-# rmse_TR
-# summary(model_TR)
 ```
-Regression fuction: $y=15.8213-0.0034x$
 
 ```{r}
 library(ggplot2)
 gg <- ggplot(sales_data, aes(x = TN, y = Sales)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + ggtitle(bquote(bold("Figure 9: Relationship between TV, Newspaper Advertising expenditure and Sales"))) 
 model_TN <- lm(Sales ~ TN, data = sales_data)
-gg + theme(plot.title = element_text(size = 12, hjust = 0.5))
+gg + theme(plot.title = element_text(size = 12, hjust = 0.5))+labs(x = "TV and Newspaper Advertising Expenditure (GBP)", y = "Sales (in thousands)")
 
 #accuracy:
 mse_TN <- mean(model_TN$residuals^2)
 rmse_TN <- sqrt(mse_TN)
-# rmse_TN
-# summary(model_TN)
 ```
-Regression function: $y=15.6194-0.0022x$
 
 ```{r}
 library(ggplot2)
 gg <- ggplot(sales_data, aes(x = RN, y = Sales)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + ggtitle(bquote(bold("Figure 10: Relationship between Radio and Newspaper Advertising expenditure and Sales"))) 
 model_RN <- lm(Sales ~ RN, data = sales_data)
-gg + theme(plot.title = element_text(size = 10, hjust = 0.5))
+gg + theme(plot.title = element_text(size = 10, hjust = 0.5))+labs(x = "Radio and Newspaper Advertising Expenditure (GBP)", y = "Sales (in thousands)")
+
 
 #accuracy:
 mse_RN <- mean(model_RN$residuals^2)
 rmse_RN <- sqrt(mse_RN)
-# rmse_RN
-# summary(model_RN)
 ```
-Regression function: $y=14.4137+0.0142x$
 
 ```{r}
 library(ggplot2)
 gg <- ggplot(sales_data, aes(x = TRN, y = Sales)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + ggtitle(bquote(bold("Figure 11: Relationship between TV, Radio, Newspaper Advertising expenditure and Sales"))) 
 model_TRN <- lm(Sales ~ TRN, data = sales_data)
-gg + theme(plot.title = element_text(size = 10, hjust = 0.5))
+gg + theme(plot.title = element_text(size = 10, hjust = 0.5))+labs(x = "TV, Radio and Newspaper Advertising Expenditure (GBP)", y = "Sales (in thousands)")
 
 #accuracy:
 mse_TRN <- mean(model_TRN$residuals^2)
 rmse_TRN <- sqrt(mse_TRN)
 # rmse_TRN
-# summary(model_TRN)
+ summary(model_TRN)
 ```
-Regression function: $y=15.6782-0.0022x$
 
+The information of the seven models is compared as follows:
 
+```{r}
+model_comparison <- data.frame(
+  Term = c("TV-Sales","Radio-Sales","Newspaper-Sales", "TV/Radio-Sales", "TV/Newspaper-Sales", "Radio/Newspaper-sales","TV/Radio/Newspaper-Sales"),
+  Function = c("y=15.7435-0.0034x", "y=15.2907-0.0036x", "y=14.4945+0.0226x", "y=15.8213-0.0034x", "y=15.6194-0.0022x", "y=14.4137+0.0142x", "y=15.6782-0.0022x"),
+  Coefficient = c(-0.0034172, -0.0036067, 0.0225644, -0.0033916, -0.0021952, 0.0142139, -0.0022221),
+  p_value = c(0.4173991, 0.8897190, 0.2510069, 0.4127619, 0.5875436, 0.3855447, 0.5778785),
+  RMSE = c(5.011253, 5.019358, 5.002886, 5.011085, 5.015865, 5.010043, 5.015669)
+)
 
-To check the significance and the accuracy of all the models, p-value and the Root Mean Square Error (RMSE) can be used. The p-values of the regression models are 0.4172, 0.8897, 0.251, 0.4128, 0.5875, 0.3855 and 0.5779 respectively, which are all larger then 0.05. Thus all the seven models can't show significant relation between the variables. 
-The RMSE values of the models are 5.011253, 5.019358, 5.002886,   5.011085, 5.015865,  5.010043,  5.015669 seperately. The RMSE of newspaper advertising expenditure is the smallest, showing this model is the most accurate among the seven. 
+kable(model_comparison, caption = "<span style='color:black'><b>Table 2 : Linear Regression Model Comparisons\b") %>%
+  kable_styling(full_width = F, position = "center")
 
-Comparing all the seven regressions lines, the newspaper advertising expenditure has the biggest positive impact on toy sales, whose regression model is also the most accurate. Therefore, to achieve the 30 thousand sales of toy, the company can focus on the newspaper advertising. By using the third regression function $y=14.49+0.0226x$, the company would need to allocate approximately 1,327,687.61 GBP for Newspaper advertising. 
+```
 
+P-value and RMSE are used to check the significance and the accuracy of the models. From Table 2, all the p-values are greater then 0.05, showing all the seven models can't show significant relationship. The RMSE of the Newspaper advertising expenditure-Sales model is the smallest, showing this is the most accurate model among the seven. 
+
+Comparing all the seven regressions lines, the newspaper advertising expenditure has the biggest positive impact on sales, whose regression model is also the most accurate. Therefore, to achieve the 30 thousand sales of toy, the company should focus on the newspaper advertising. Using the third regression function $y=14.49+0.0226x$, the company would need to allocate approximately 1,327,687.61 GBP for Newspaper advertising. 
 
 
 ## 3. Conclusion
 
-In conclusion, this study aimed to analyze the effect of advertising expenditures on toy sales for Bisney's action figure product line. The research investigates the relationship between advertising spending across different channels (TV, radio, newspaper and four combined advertising) and toy sales over a three-year period. 
+In conclusion, this study aims to analyze the effect of advertising expenditures on toy sales for Bisney's action figure product line. The research investigates the relationship between advertising spending on different channels (TV, radio, newspaper and four combined advertising) and toy sales over a three-year period. 
 
-From regression analysis and correlation measures, newspaper advertising expenditure showed the most significant positive impact on toy sales. The regression model based on it is also the most accurate compared to others. To achieve the target of 30 thousand toy sales, the study recommends focusing resources on newspaper advertising. The regression analysis suggests an allocation of approximately £1,327,687.61 for newspaper advertising to achieve the desired sales target.
+From regression and correlation analysis, newspaper advertising expenditure showed the most significant positive impact on toy sales. The regression model based on it is also the most accurate. To achieve the target of 30 thousand toy sales, the study recommends focusing resources on newspaper advertising, with an allocation of about £1,327,687.61.
 
-
-Additionally, there are a few possible limitations in the research. Firstly, the analysis relied on a dataset in a specific time frame, which may not capture long-term trends in toy sales and advertising effectiveness. Secondly, the analysis certain simplifying assumptions about the relationship between advertising expenditures and toy sales, which may oversimplify the complex dynamics of consumer behavior and market trends. Also, for the solution of achieving the 30 thousand's sale target is impractical since the company can't only use one type of advertisement.
-Therefore, for future analysis or decision makers, this study is referenced and provides some sensible analysis approaches. Yet they need further research with a larger sample size from a wider time span, and more variables with more sophisticated models are needed.  
+Additionally, there are a few possible limitations in the research. Firstly, the analysis relied on a dataset over a 3-year period, which may not capture long-term trends in toy sales and advertising effectiveness. Secondly, the analysis uses simplified assumptions about the relationship between advertising expenditures and toy sales, which may oversimplify the complex dynamics of consumer behavior and market trends. Also, the solution of achieving the 30 thousand's sale target is impractical since the company can't only use one type of advertisement. Therefore, for future analysis or decision makers, this study can be referenced and provides some sensible analysis approaches, yet they need further research with a larger sample size from a wider time span, and more variables with more sophisticated models are needed.  
